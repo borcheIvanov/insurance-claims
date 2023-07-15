@@ -1,3 +1,4 @@
+using JetBrains.Annotations;
 using Newtonsoft.Json;
 
 namespace Services.Cover;
@@ -20,6 +21,7 @@ public class Cover: IIdMarker
     public decimal Premium { get; set; }
 }
 
+[PublicAPI]
 public enum CoverType
 {
     Yacht = 0,

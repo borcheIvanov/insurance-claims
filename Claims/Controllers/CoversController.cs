@@ -1,9 +1,15 @@
+using JetBrains.Annotations;
 using Microsoft.AspNetCore.Mvc;
 using Services.Audit;
 using Services.Cover;
+using Swashbuckle.AspNetCore.Annotations;
 
 namespace Claims.Controllers;
 
+/// <summary>
+/// Controller that contains the endpoints for Covers operations
+/// </summary>
+[PublicAPI]
 [ApiController]
 [Route("[controller]")]
 public class CoversController : ControllerBase
@@ -12,6 +18,9 @@ public class CoversController : ControllerBase
     private readonly IAuditService _auditService;
     private readonly ICoverService _coverService;
 
+    /// <summary>
+    /// Constructor with the required dependency by dependency injection
+    /// </summary>
     public CoversController(ICoverService coverService, IAuditService auditService, ILogger<CoversController> logger)
     {
         _coverService = coverService;
@@ -19,13 +28,24 @@ public class CoversController : ControllerBase
         _auditService = auditService;
     }
     
-    [HttpPost]
+    /// <summary>
+    ///  Get a premium calculation with the desired query parameters 
+    /// </summary>
+    /// <param name="startDate">Start date for the Calculation</param>
+    /// <param name="endDate">End date</param>
+    /// <param name="coverType">Cover type</param>
+    [SwaggerResponse(200, "Result of the computation for the passed parameters", typeof(decimal))]
+    [HttpPost("compute-premium")]
     public IActionResult ComputePremiumAsync(DateOnly startDate, DateOnly endDate, CoverType coverType)
     {
         var premium = _coverService.ComputePremium(startDate, endDate, coverType);
         return Ok(premium);
     }
 
+    /// <summary>
+    /// Get a lis of all existing Covers
+    /// </summary>
+    [SwaggerResponse(200, "List of all Covers", typeof(IEnumerable<Cover>))]
     [HttpGet]
     public async Task<ActionResult<IEnumerable<Cover>>> GetAsync()
     {
@@ -33,6 +53,12 @@ public class CoversController : ControllerBase
         return Ok(results);
     }
 
+    /// <summary>
+    /// Get Cover by its id
+    /// </summary>
+    /// <param name="id">Id of the desired Cover</param>
+    [SwaggerResponse(404, "Cover with that id is not found")]
+    [SwaggerResponse(200, "Cover with the passed Id", typeof(Cover))]
     [HttpGet("{id}")]
     public async Task<ActionResult<Cover>> GetAsync(string id)
     {
@@ -44,8 +70,13 @@ public class CoversController : ControllerBase
         return Ok(result);
     }
 
+    /// <summary>
+    /// Create a new Cover
+    /// </summary>
+    /// <param name="cover">Cover to be created</param>
+    [SwaggerResponse(200, "Returns the created Cover", typeof(Cover))] 
     [HttpPost]
-    public async Task<ActionResult> CreateAsync(Cover cover)
+    public async Task<ActionResult> CreateAsync([FromBody]Cover cover)
     {
         cover.Id = Guid.NewGuid().ToString();
         cover.Premium = _coverService.ComputePremium(cover.StartDate, cover.EndDate, cover.Type);
@@ -54,6 +85,11 @@ public class CoversController : ControllerBase
         return Ok(cover);
     }
 
+    /// <summary>
+    /// Delete a Cover
+    /// </summary>
+    /// <param name="id">Id of the Cover to be deleted</param>
+    [SwaggerResponse(202, "Cover Deleted")]
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteAsync(string id)
     {

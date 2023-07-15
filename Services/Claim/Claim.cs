@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using JetBrains.Annotations;
+using Newtonsoft.Json;
 
 namespace Services.Claim;
 
@@ -24,6 +25,7 @@ public class Claim: IIdMarker
 
 }
 
+[PublicAPI]
 public enum ClaimType
 {
     Collision = 0,

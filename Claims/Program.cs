@@ -42,7 +42,11 @@ builder.Services.AddScoped<IAuditService, AuditService>();
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(options => {
+    var xmlFilename = $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    options.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, xmlFilename));
+    options.EnableAnnotations();
+});
 
 var app = builder.Build();
 
@@ -79,4 +83,7 @@ where T: class, IIdMarker
     return cosmosDbService;
 }
 
+/// <summary>
+/// Here so Program can be referenced by Claims.Tests
+/// </summary>
 public partial class Program { }

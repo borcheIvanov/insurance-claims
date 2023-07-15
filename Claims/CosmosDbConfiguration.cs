@@ -1,6 +1,6 @@
 namespace Claims;
 
-public class CosmosDbConfiguration
+internal class CosmosDbConfiguration
 {
 	public string DatabaseName { get; set; } = null!;
 	public string ContainerName { get; set; } = null!;
