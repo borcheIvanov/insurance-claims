@@ -1,11 +1,11 @@
 using Newtonsoft.Json;
 
-namespace Claims;
+namespace Services.Cover;
 
-public class Cover
+public class Cover: IIdMarker
 {
     [JsonProperty(PropertyName = "id")]
-    public string Id { get; set; }
+    public string Id { get; set; }  = null!;
 
     [JsonProperty(PropertyName = "startDate")]
     public DateOnly StartDate { get; set; }

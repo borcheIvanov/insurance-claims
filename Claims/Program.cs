@@ -1,8 +1,11 @@
-using System.Configuration;
 using System.Text.Json.Serialization;
-using Claims.Auditing;
-using Claims.Controllers;
+using Claims;
+using Infrastructure;
 using Microsoft.EntityFrameworkCore;
+using Services;
+using Services.Audit;
+using Services.Claim;
+using Services.Cover;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -14,10 +17,28 @@ builder.Services.AddControllers().AddJsonOptions(x =>
     }
 );
 
-builder.Services.AddSingleton(
-    InitializeCosmosClientInstanceAsync(builder.Configuration.GetSection("CosmosDb")).GetAwaiter().GetResult());
+var cosmosDbConfig = new CosmosDbConfiguration();
+builder.Configuration.Bind("CosmosDb", cosmosDbConfig);
+var claimRepository = InitializeCosmosClientInstanceAsync<Claim>(
+        cosmosDbConfig.DatabaseName, 
+        cosmosDbConfig.ContainerName,
+        cosmosDbConfig.Account, 
+        cosmosDbConfig.Key)
+    .GetAwaiter()
+    .GetResult();
+var coverRepository = InitializeCosmosClientInstanceAsync<Cover>(
+        cosmosDbConfig.DatabaseName,
+        "Cover",
+        cosmosDbConfig.Account, 
+        cosmosDbConfig.Key)
+    .GetAwaiter()
+    .GetResult();
+
+builder.Services.AddSingleton<IClaimService>(new ClaimService(claimRepository));
+builder.Services.AddSingleton<ICoverService>(new CoverService(coverRepository));
 
 builder.Services.AddDbContext<AuditContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+builder.Services.AddScoped<IAuditService, AuditService>();
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
@@ -46,15 +67,13 @@ using (var scope = app.Services.CreateScope())
 
 app.Run();
 
-static async Task<CosmosDbService> InitializeCosmosClientInstanceAsync(IConfigurationSection configurationSection)
+static async Task<IRepository<T>> InitializeCosmosClientInstanceAsync<T>(string dbName, string containerName, 
+    string account, string key)
+where T: class, IIdMarker
 {
-    string databaseName = configurationSection.GetSection("DatabaseName").Value;
-    string containerName = configurationSection.GetSection("ContainerName").Value;
-    string account = configurationSection.GetSection("Account").Value;
-    string key = configurationSection.GetSection("Key").Value;
     Microsoft.Azure.Cosmos.CosmosClient client = new Microsoft.Azure.Cosmos.CosmosClient(account, key);
-    CosmosDbService cosmosDbService = new CosmosDbService(client, databaseName, containerName);
-    Microsoft.Azure.Cosmos.DatabaseResponse database = await client.CreateDatabaseIfNotExistsAsync(databaseName);
+    var cosmosDbService = new Repository<T>(client, dbName, containerName);
+    Microsoft.Azure.Cosmos.DatabaseResponse database = await client.CreateDatabaseIfNotExistsAsync(dbName);
     await database.Database.CreateContainerIfNotExistsAsync(containerName, "/id");
 
     return cosmosDbService;
