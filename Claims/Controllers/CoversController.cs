@@ -1,3 +1,4 @@
+using FluentValidation;
 using JetBrains.Annotations;
 using Microsoft.AspNetCore.Mvc;
 using Services.Audit;
@@ -15,30 +16,37 @@ namespace Claims.Controllers;
 public class CoversController : ControllerBase
 {
     private readonly ILogger<CoversController> _logger;
+    private readonly IValidator<CoverRequestModel> _validator;
     private readonly IAuditService _auditService;
     private readonly ICoverService _coverService;
 
     /// <summary>
     /// Constructor with the required dependency by dependency injection
     /// </summary>
-    public CoversController(ICoverService coverService, IAuditService auditService, ILogger<CoversController> logger)
+    public CoversController(ICoverService coverService, IAuditService auditService, ILogger<CoversController> logger,
+        IValidator<CoverRequestModel> validator)
     {
         _coverService = coverService;
         _logger = logger;
+        _validator = validator;
         _auditService = auditService;
     }
-    
+
     /// <summary>
     ///  Get a premium calculation with the desired query parameters 
     /// </summary>
-    /// <param name="startDate">Start date for the Calculation</param>
-    /// <param name="endDate">End date</param>
-    /// <param name="coverType">Cover type</param>
+    /// <param name="coverRequest"></param>
     [SwaggerResponse(200, "Result of the computation for the passed parameters", typeof(decimal))]
+    [SwaggerResponse(400, "Bad request containing list of errors when the Request is invalid")]
     [HttpPost("compute-premium")]
-    public IActionResult ComputePremiumAsync(DateOnly startDate, DateOnly endDate, CoverType coverType)
+    public async Task<IActionResult> ComputePremiumAsync([FromQuery] CoverRequestModel coverRequest)
     {
-        var premium = _coverService.ComputePremium(startDate, endDate, coverType);
+        var validationResult = await _validator.ValidateAsync(coverRequest);
+        if (!validationResult.IsValid) {
+            return BadRequest(validationResult.Errors.ToArray());
+        }
+        
+        var premium = _coverService.ComputePremium(coverRequest.StartDate, coverRequest.EndDate, coverRequest.CoverType);
         return Ok(premium);
     }
 
@@ -73,13 +81,18 @@ public class CoversController : ControllerBase
     /// <summary>
     /// Create a new Cover
     /// </summary>
-    /// <param name="cover">Cover to be created</param>
+    /// <param name="createCoverRequest">Cover to be created</param>
     [SwaggerResponse(200, "Returns the created Cover", typeof(Cover))] 
+    [SwaggerResponse(400, "Bad request containing list of errors when the Request is invalid")]
     [HttpPost]
-    public async Task<ActionResult> CreateAsync([FromBody]Cover cover)
+    public async Task<ActionResult> CreateAsync([FromBody]CoverRequestModel createCoverRequest)
     {
-        cover.Id = Guid.NewGuid().ToString();
-        cover.Premium = _coverService.ComputePremium(cover.StartDate, cover.EndDate, cover.Type);
+        var validationResult = await _validator.ValidateAsync(createCoverRequest);
+        if (!validationResult.IsValid) {
+            return BadRequest(validationResult.Errors.ToArray());
+        }
+
+        var cover = new Cover(createCoverRequest.StartDate, createCoverRequest.EndDate, createCoverRequest.CoverType);
         await _coverService.CreateCoverAsync(cover);
         await _auditService.AuditCover(cover.Id, "POST");
         return Ok(cover);

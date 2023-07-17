@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization;
 using Claims;
+using FluentValidation;
 using Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Services;
@@ -39,6 +40,7 @@ builder.Services.AddSingleton<ICoverService>(new CoverService(coverRepository));
 
 builder.Services.AddDbContext<AuditContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 builder.Services.AddScoped<IAuditService, AuditService>();
+builder.Services.AddScoped<IValidator<CoverRequestModel>, CoverValidator>();
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
