@@ -1,3 +1,4 @@
+using FluentValidation;
 using JetBrains.Annotations;
 using Microsoft.AspNetCore.Mvc;
 using Services.Audit;
@@ -18,15 +19,18 @@ public class ClaimsController : ControllerBase
     private readonly ILogger<ClaimsController> _logger;
     private readonly IClaimService _claimService;
     private readonly IAuditService _auditService;
+    private readonly IValidator<ClaimRequestModel> _claimValidator;
 
     /// <summary>
     ///  Constructor with the dependencies required for the endpoints
     /// </summary>
-    public ClaimsController(ILogger<ClaimsController> logger, IClaimService claimService, IAuditService auditService)
+    public ClaimsController(ILogger<ClaimsController> logger, IClaimService claimService, IAuditService auditService,
+        IValidator<ClaimRequestModel> claimValidator)
     {
         _logger = logger;
         _claimService = claimService;
         _auditService = auditService;
+        _claimValidator = claimValidator;
     }
 
     /// <summary>
@@ -42,12 +46,17 @@ public class ClaimsController : ControllerBase
     /// <summary>
     /// Create a new Claim
     /// </summary>
-    /// <param name="claim">Claim object to be created</param>
+    /// <param name="claimRequest">Claim request model to create Claim</param>
     [SwaggerResponse(200, "Returns the Created Claim")]
     [HttpPost]
-    public async Task<ActionResult> CreateAsync(Claim claim)
+    public async Task<ActionResult> CreateAsync(ClaimRequestModel claimRequest)
     {
-        claim.Id = Guid.NewGuid().ToString();
+        var validationResult = await _claimValidator.ValidateAsync(claimRequest);
+        if (!validationResult.IsValid) {
+            return BadRequest(validationResult.Errors.ToArray());
+        }
+
+        var claim = new Claim { };
         await _claimService.AddItemAsync(claim);
         await _auditService.AuditClaim(claim.Id, "POST");
         return Ok(claim);
