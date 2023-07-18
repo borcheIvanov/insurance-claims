@@ -2,12 +2,7 @@
 # More GitHub Actions for Azure: https://github.com/Azure/actions
 
 name: Build and deploy ASP.Net Core app to Azure Web App - insurance-claims
-on:
-  push:
-    branches:
-      - fix-gh-action
-      - main
-  workflow_dispatch:
+on: [push, workflow_dispatch]
 
 jobs:
   build:
@@ -22,6 +17,17 @@ jobs:
 
       - name: Build with dotnet
         run: dotnet build --configuration Release
+        
+      - name: App Settings Variable Substitution
+        uses: microsoft/variable-substitution@v1
+        with:
+          files: '**/appsettings.json'
+        env:
+          CosmosDb.Account: ${{ secrets.COSMOS_ACCOUNT }}
+          CosmosDb.Key: ${{ secrets.COSMOS_KEY }}
+          CosmosDb.DatabaseName: ${{ secrets.COSMOS_DB_NAME }}
+          EventGrid.Endpoint: ${{ secrets.EVENT_GRID_ENDPOINT }}
+          EventGrid.Key: ${{ secrets.EVENT_GRID_KEY }}
 
       - name: dotnet publish
         run: dotnet publish -c Release -o ${{env.DOTNET_ROOT}}/myapp
@@ -43,17 +49,6 @@ jobs:
         uses: actions/download-artifact@v2
         with:
           name: .net-app
-          
-      - name: App Settings Variable Substitution
-        uses: microsoft/variable-substitution@v1
-        with:
-          files: '**/appsettings.json'
-        env:
-          CosmosDb.Account: ${{ secrets.COSMOS_ACCOUNT }}
-          CosmosDb.Key: ${{ secrets.COSMOS_KEY }}
-          CosmosDb.DatabaseName: ${{ secrets.COSMOS_DB_NAME }}
-          EventGrid.Endpoint: ${{ env.EVENT_GRID_ENDPOINT }}
-          EventGrid.Key: ${{ env.EVENT_GRID_KEY }}
             
       - name: Deploy to Azure Web App
         id: deploy-to-webapp
