@@ -17,6 +17,7 @@ public class Cover: IIdMarker
 
         StartDate = startDate;
         EndDate = endDate;
+        Type = coverType;
         Premium = ComputePremium(startDate, endDate, coverType);
     }
 
@@ -46,10 +47,10 @@ public class Cover: IIdMarker
     
     public static bool PeriodIsUnderYear(DateOnly startDate, DateOnly endDate)
     {
-        var dateFrom = startDate.ToDateTime(TimeOnly.MinValue);
-        var dateTo = endDate.ToDateTime(TimeOnly.MaxValue);
+        var dateFrom = startDate.ToDateTime(TimeOnly.MinValue).Date;
+        var dateTo = endDate.ToDateTime(TimeOnly.MaxValue).Date;
 
-        return dateTo < dateFrom.AddYears(1);
+        return dateTo <= dateFrom.AddYears(1);
     }
     
     private static decimal ComputePremium(DateOnly startDate,  DateOnly endDate, CoverType coverType)
