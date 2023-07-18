@@ -2,7 +2,6 @@ using System.Text.Json.Serialization;
 using Claims;
 using FluentValidation;
 using Infrastructure;
-using Microsoft.EntityFrameworkCore;
 using Services;
 using Services.Audit;
 using Services.Claim;
@@ -38,7 +37,7 @@ var coverRepository = InitializeCosmosClientInstanceAsync<Cover>(
 builder.Services.AddSingleton<IClaimService>(new ClaimService(claimRepository));
 builder.Services.AddSingleton<ICoverService>(new CoverService(coverRepository));
 
-builder.Services.AddDbContext<AuditContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+builder.Services.AddScoped<IAuditRepository, AuditEventGridRepository>();
 builder.Services.AddScoped<IAuditService, AuditService>();
 builder.Services.AddScoped<IValidator<CoverRequestModel>, CoverValidator>();
 builder.Services.AddScoped<IValidator<ClaimRequestModel>, ClaimValidator>();
@@ -65,12 +64,6 @@ app.UseHttpsRedirection();
 app.UseAuthorization();
 
 app.MapControllers();
-
-using (var scope = app.Services.CreateScope())
-{
-    var context = scope.ServiceProvider.GetRequiredService<AuditContext>();
-    context.Database.Migrate();
-}
 
 app.Run();
 

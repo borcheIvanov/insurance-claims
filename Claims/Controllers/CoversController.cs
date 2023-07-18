@@ -95,7 +95,7 @@ public class CoversController : ControllerBase
         var cover = new Cover(createCoverRequest.StartDate, createCoverRequest.EndDate, createCoverRequest.CoverType);
         await _coverService.CreateCoverAsync(cover);
 
-        Task.Run(async () => await _auditService.AuditCover(cover.Id, "POST"));
+        await _auditService.AuditCover(cover.Id, "POST");
         return Ok(cover);
     }
 
@@ -107,7 +107,7 @@ public class CoversController : ControllerBase
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteAsync(string id)
     {
-        Task.Run(async () => await _auditService.AuditCover(id, "DELETE"));
+        await _auditService.AuditCover(id, "DELETE");
         await _coverService.DeleteCoverAsync(id);
         return NoContent();
     }

@@ -62,7 +62,7 @@ public class ClaimsController : ControllerBase
         var claim = new Claim(cover!, claimRequest.Created, claimRequest.Name, claimRequest.Type,
             claimRequest.DamageCost);
         await _claimService.AddItemAsync(claim);
-        Task.Run(async () => await _auditService.AuditClaim(claim.Id, "POST"));
+        await _auditService.AuditClaim(claim.Id, "POST");
         return Ok(claim);
     }
 
@@ -74,7 +74,7 @@ public class ClaimsController : ControllerBase
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteAsync(string id)
     {
-        Task.Run(async () => await _auditService.AuditClaim(id, "DELETE"));
+        await _auditService.AuditClaim(id, "DELETE");
         await _claimService.DeleteItemAsync(id);
         return NoContent();
     }
