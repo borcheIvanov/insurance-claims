@@ -3,6 +3,7 @@ using JetBrains.Annotations;
 using Microsoft.AspNetCore.Mvc;
 using Services.Audit;
 using Services.Claim;
+using Services.Cover;
 using Swashbuckle.AspNetCore.Annotations;
 
 namespace Claims.Controllers;
@@ -15,22 +16,23 @@ namespace Claims.Controllers;
 [Route("[controller]")]
 public class ClaimsController : ControllerBase
 {
-        
     private readonly ILogger<ClaimsController> _logger;
     private readonly IClaimService _claimService;
     private readonly IAuditService _auditService;
     private readonly IValidator<ClaimRequestModel> _claimValidator;
+    private readonly ICoverService _coverService;
 
     /// <summary>
     ///  Constructor with the dependencies required for the endpoints
     /// </summary>
     public ClaimsController(ILogger<ClaimsController> logger, IClaimService claimService, IAuditService auditService,
-        IValidator<ClaimRequestModel> claimValidator)
+        IValidator<ClaimRequestModel> claimValidator, ICoverService coverService)
     {
         _logger = logger;
         _claimService = claimService;
         _auditService = auditService;
         _claimValidator = claimValidator;
+        _coverService = coverService;
     }
 
     /// <summary>
@@ -56,7 +58,9 @@ public class ClaimsController : ControllerBase
             return BadRequest(validationResult.Errors.ToArray());
         }
 
-        var claim = new Claim { };
+        var cover = await _coverService.GetCoverByIdAsync(claimRequest.CoverId);
+        var claim = new Claim(cover!, claimRequest.Created, claimRequest.Name, claimRequest.Type,
+            claimRequest.DamageCost);
         await _claimService.AddItemAsync(claim);
         Task.Run(async () => await _auditService.AuditClaim(claim.Id, "POST"));
         return Ok(claim);
