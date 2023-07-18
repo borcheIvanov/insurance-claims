@@ -26,8 +26,8 @@ jobs:
           CosmosDb.Account: ${{ secrets.COSMOS_ACCOUNT }}
           CosmosDb.Key: ${{ secrets.COSMOS_KEY }}
           CosmosDb.DatabaseName: ${{ secrets.COSMOS_DB_NAME }}
-          EventGrid.Endpoint: ${{ env.EVENT_GRID_ENDPOINT }}
-          EventGrid.Key: ${{ env.EVENT_GRID_KEY }}
+          EventGrid.Endpoint: ${{ secrets.EVENT_GRID_ENDPOINT }}
+          EventGrid.Key: ${{ secrets.EVENT_GRID_KEY }}
 
       - name: dotnet publish
         run: dotnet publish -c Release -o ${{env.DOTNET_ROOT}}/myapp
